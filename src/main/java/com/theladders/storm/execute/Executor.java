@@ -34,7 +34,7 @@ public class Executor
   {
     Object result = resultOf(incomingValues);
 
-    // TODO: returning nulls sucks. polymorphic class m
+    // TODO: returning nulls sucks. polymorphic class maybe?
     // handle void methods or methods that choose not to return something
     if (result == null)
     {
