@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Before;
@@ -63,7 +65,7 @@ public class EmissionTest
 
     verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
 
-    withTheCorrectValues();
+    withValues(7, 9);
   }
 
   @Test
@@ -74,7 +76,7 @@ public class EmissionTest
 
     verify(basicOutputCollector).emit(eq("anotherStream"), valuesArgumentCaptor.capture());
 
-    withTheCorrectValues();
+    withValues(7, 9);
   }
 
   @Test
@@ -85,7 +87,7 @@ public class EmissionTest
 
     verify(basicOutputCollector).emitDirect(eq(3), valuesArgumentCaptor.capture());
 
-    withTheCorrectValues();
+    withValues(7, 9);
   }
 
   @Test
@@ -96,7 +98,47 @@ public class EmissionTest
 
     verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
 
-    withTheCorrectValues();
+    withValues(7, 9);
+  }
+
+  @Test
+  public void withSingularReturn()
+  {
+    bolt = new WithSingularReturn();
+    execute();
+
+    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+
+    withValues(7);
+  }
+
+  @Test
+  public void withArrayReturn()
+  {
+    bolt = new WithArrayReturn();
+    execute();
+
+    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+
+    withValues(7, 9);
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void withPrimitiveArrayReturn()
+  {
+    bolt = new WithPrimitiveArrayReturn();
+    execute();
+  }
+
+  @Test
+  public void withIterableReturn()
+  {
+    bolt = new WithIterableReturn();
+    execute();
+
+    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+
+    withValues(7, 9);
   }
 
   private void execute()
@@ -112,11 +154,14 @@ public class EmissionTest
     annotatedBolt.cleanup();
   }
 
-  private void withTheCorrectValues()
+  private void withValues(Object... expectedValues)
   {
-    Values values = valuesArgumentCaptor.getValue();
-    assertEquals(7, values.get(0));
-    assertEquals(9, values.get(1));
+    List<?> values = valuesArgumentCaptor.getValue();
+    assertEquals(expectedValues.length, values.size());
+    for (int i = 0; i < expectedValues.length; i++)
+    {
+      assertEquals(expectedValues[i], values.get(i));
+    }
   }
 
   @OutputFields({ "field1", "field2" })
@@ -167,6 +212,58 @@ public class EmissionTest
     }
   }
 
+  @OutputFields({ "field1" })
+  public static class WithSingularReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public int execute(@Field("inputField1") TestObjectParameter testObject1,
+                                       @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return testObject1.number;
+    }
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithArrayReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public Integer[] execute(@Field("inputField1") TestObjectParameter testObject1,
+                         @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new Integer[] { testObject1.number, testObject2.number };
+    }
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithPrimitiveArrayReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public int[] execute(@Field("inputField1") TestObjectParameter testObject1,
+                         @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new int[] { testObject1.number, testObject2.number };
+    }
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithIterableReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public Iterable<Integer> execute(@Field("inputField1") TestObjectParameter testObject1,
+                             @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new SomeIterable(testObject1.number, testObject2.number);
+    }
+  }
+
   private static class TestObjectParameter
   {
     public final int number;
@@ -174,6 +271,22 @@ public class EmissionTest
     public TestObjectParameter(int number)
     {
       this.number = number;
+    }
+  }
+
+  private static class SomeIterable<T> implements Iterable<T>
+  {
+    private final Collection<T> elements;
+
+    public SomeIterable(T... elements)
+    {
+      this.elements = Arrays.asList(elements);
+    }
+
+    @Override
+    public Iterator<T> iterator()
+    {
+      return elements.iterator();
     }
   }
 }

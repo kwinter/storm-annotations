@@ -1,10 +1,10 @@
 package com.theladders.storm.execute;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
 
 import com.theladders.storm.emit.EmissionStrategy;
 import com.theladders.storm.emit.EmissionStrategyFactory;
@@ -33,7 +33,7 @@ public class TupleExecutor
                       BasicOutputCollector outputCollector)
   {
     Object[] incomingValues = incomingValuesFrom(tuple);
-    Values outgoingValues = executeWith(incomingValues);
+    List<Object> outgoingValues = executeWith(incomingValues);
     emissionStrategy.emit(outgoingValues, outputCollector);
   }
 
@@ -42,7 +42,7 @@ public class TupleExecutor
     return tupleValueExtractor.valuesFrom(tuple);
   }
 
-  private Values executeWith(Object[] incomingValues)
+  private List<Object> executeWith(Object[] incomingValues)
   {
     return executor.executeWith(incomingValues);
   }
