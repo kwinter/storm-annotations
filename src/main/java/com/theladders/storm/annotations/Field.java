@@ -9,5 +9,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Field
 {
-  String value();
+  String value() default "";
+
+  int index() default -1;
 }

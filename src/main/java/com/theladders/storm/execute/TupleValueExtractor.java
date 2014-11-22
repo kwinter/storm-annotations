@@ -7,42 +7,69 @@ import java.util.List;
 
 import backtype.storm.tuple.Tuple;
 
+import com.theladders.storm.execute.field.FieldExtractor;
+import com.theladders.storm.execute.field.IndexedFieldExtractor;
+import com.theladders.storm.execute.field.NamedFieldExtractor;
+import com.theladders.storm.execute.field.TupleFieldExtractor;
+
 public class TupleValueExtractor
 {
-  private final List<String> fieldNames;
+  private final List<FieldExtractor> fieldExtractors;
 
-  private TupleValueExtractor(List<String> fieldNames)
+  private TupleValueExtractor(List<FieldExtractor> fieldExtractors)
   {
-    this.fieldNames = fieldNames;
+    this.fieldExtractors = fieldExtractors;
   }
 
   public static TupleValueExtractor extractorFor(Method executeMethod)
   {
-    return new TupleValueExtractor(fieldNames(executeMethod));
+    return new TupleValueExtractor(fieldExtractorsFor(executeMethod));
   }
 
-  private static List<String> fieldNames(Method executeMethod)
+  private static List<FieldExtractor> fieldExtractorsFor(Method executeMethod)
   {
     Annotation[][] allParameterAnnotations = executeMethod.getParameterAnnotations();
     Class<?>[] parameterTypes = executeMethod.getParameterTypes();
-    List<String> fieldNames = new ArrayList<>(parameterTypes.length);
+    List<FieldExtractor> fieldExtractors = new ArrayList<>(parameterTypes.length);
 
     for (int i = 0; i < parameterTypes.length; i++)
     {
-      Annotation[] parameterAnnotations = allParameterAnnotations[i];
-      com.theladders.storm.annotations.Field fieldAnnotation = fieldAnnotationIn(parameterAnnotations);
-      fieldNames.add(fieldAnnotation.value());
+      fieldExtractors.add(fieldExtractorFor(parameterTypes[i], allParameterAnnotations[i]));
     }
-    return fieldNames;
+    return fieldExtractors;
+  }
+
+  private static FieldExtractor fieldExtractorFor(Class<?> parameterType,
+                                                  Annotation[] parameterAnnotations)
+  {
+    if (Tuple.class.isAssignableFrom(parameterType))
+    {
+      return new TupleFieldExtractor();
+    }
+    com.theladders.storm.annotations.Field fieldAnnotation = fieldAnnotationIn(parameterAnnotations);
+
+    // TODO: handle if name is blank and index is -1, or if both are set
+    String fieldName = fieldAnnotation.value();
+    if (!fieldName.isEmpty())
+    {
+      return new NamedFieldExtractor(fieldName);
+    }
+    int fieldIndex = fieldAnnotation.index();
+    if (fieldIndex >= 0)
+    {
+      return new IndexedFieldExtractor(fieldIndex);
+    }
+    // TODO: better error handling
+    throw new RuntimeException("No suitable @Field values found on parameter " + parameterType);
   }
 
   public Object[] valuesFrom(Tuple tuple)
   {
-    Object[] parameters = new Object[fieldNames.size()];
+    Object[] parameters = new Object[fieldExtractors.size()];
 
-    for (int i = 0; i < fieldNames.size(); i++)
+    for (int i = 0; i < fieldExtractors.size(); i++)
     {
-      parameters[i] = tuple.getValueByField(fieldNames.get(i));
+      parameters[i] = fieldExtractors.get(i).extractFrom(tuple);
     }
     return parameters;
   }
