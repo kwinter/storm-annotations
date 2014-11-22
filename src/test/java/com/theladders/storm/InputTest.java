@@ -39,6 +39,15 @@ public class InputTest extends AbstractAnnotatedBoltTest
     thenTheOutputValuesAre(10, "test executed", true, 2.45f);
   }
 
+  @Test
+  public void mixedInput()
+  {
+    givenInputFields("inputField1", "inputField2", "inputField3", "inputField4");
+    givenInputValues(5, "test", true, 2.45f);
+    whenRunning(new MixedInputBolt());
+    thenTheOutputValuesAre(10, "test executed", true, 2.45f);
+  }
+
   @OutputFields({ "field1", "field2", "field3", "field4" })
   public static class PrimitiveInputBolt
   {
@@ -80,6 +89,22 @@ public class InputTest extends AbstractAnnotatedBoltTest
                           @Field(index = 2) boolean bool,
                           @Field(index = 3) float fl)
     {
+      return new Values(intNum * 2, string + " executed", bool, fl);
+    }
+
+  }
+
+  @OutputFields({ "field1", "field2", "field3", "field4" })
+  public static class MixedInputBolt
+  {
+
+    @Execute
+    public Values execute(@Field("inputField1") int intNum,
+                          @Field(index = 1) String string,
+                          @Field(index = 2) boolean bool,
+                          Tuple tuple)
+    {
+      float fl = tuple.getFloatByField("inputField4");
       return new Values(intNum * 2, string + " executed", bool, fl);
     }
 
