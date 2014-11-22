@@ -34,6 +34,13 @@ public class Executor
   {
     Object result = resultOf(incomingValues);
 
+    // TODO: returning nulls sucks. polymorphic class m
+    // handle void methods or methods that choose not to return something
+    if (result == null)
+    {
+      return null;
+    }
+
     // TODO(kw): better handling if the return isn't values
     if (result instanceof List)
     {

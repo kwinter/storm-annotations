@@ -34,7 +34,10 @@ public class TupleExecutor
   {
     Object[] incomingValues = incomingValuesFrom(tuple);
     List<Object> outgoingValues = executeWith(incomingValues);
-    emissionStrategy.emit(outgoingValues, outputCollector);
+    if (outgoingValues != null)
+    {
+      emissionStrategy.emit(outgoingValues, outputCollector);
+    }
   }
 
   private Object[] incomingValuesFrom(Tuple tuple)

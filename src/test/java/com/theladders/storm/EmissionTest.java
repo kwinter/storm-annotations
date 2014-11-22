@@ -5,6 +5,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -141,6 +142,22 @@ public class EmissionTest
     withValues(7, 9);
   }
 
+  @Test
+  public void nullReturnEmitsNothing()
+  {
+    bolt = new WithNullReturn();
+    execute();
+    verifyZeroInteractions(basicOutputCollector);
+  }
+
+  @Test
+  public void voidReturnEmitsNothing()
+  {
+    bolt = new WithVoidReturn();
+    execute();
+    verifyZeroInteractions(basicOutputCollector);
+  }
+
   private void execute()
   {
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
@@ -261,6 +278,32 @@ public class EmissionTest
                              @Field("inputField2") TestObjectParameter testObject2)
     {
       return new SomeIterable(testObject1.number, testObject2.number);
+    }
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithNullReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public Integer execute(@Field("inputField1") TestObjectParameter testObject1,
+                           @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return null;
+    }
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithVoidReturn
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Task(3)
+    public void execute(@Field("inputField1") TestObjectParameter testObject1,
+                        @Field("inputField2") TestObjectParameter testObject2)
+    {
+      // do nothing
     }
   }
 
