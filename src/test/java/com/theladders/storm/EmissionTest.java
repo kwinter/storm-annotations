@@ -31,7 +31,6 @@ import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.Field;
 import com.theladders.storm.annotations.OutputFields;
 import com.theladders.storm.annotations.Stream;
-import com.theladders.storm.annotations.Task;
 
 // TODO: test that output fields aren't required
 // TODO: test that cleanup is called even with exceptions
@@ -81,34 +80,12 @@ public class EmissionTest
   }
 
   @Test
-  public void withSpecificTask()
-  {
-    bolt = new WithTask();
-    execute();
-
-    verify(basicOutputCollector).emitDirect(eq(3), valuesArgumentCaptor.capture());
-
-    withValues(7, 9);
-  }
-
-  @Test
-  public void withSpecificStreamAndTask()
-  {
-    bolt = new WithStreamAndTask();
-    execute();
-
-    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
-
-    withValues(7, 9);
-  }
-
-  @Test
   public void withSingularReturn()
   {
     bolt = new WithSingularReturn();
     execute();
 
-    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
 
     withValues(7);
   }
@@ -119,7 +96,7 @@ public class EmissionTest
     bolt = new WithArrayReturn();
     execute();
 
-    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
 
     withValues(7, 9);
   }
@@ -137,7 +114,7 @@ public class EmissionTest
     bolt = new WithIterableReturn();
     execute();
 
-    verify(basicOutputCollector).emitDirect(eq(3), eq("anotherStream"), valuesArgumentCaptor.capture());
+    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
 
     withValues(7, 9);
   }
@@ -204,39 +181,12 @@ public class EmissionTest
     }
   }
 
-  @OutputFields({ "field1", "field2" })
-  public static class WithTask
-  {
-    @Execute
-    @Task(3)
-    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
-                          @Field("inputField2") TestObjectParameter testObject2)
-    {
-      return new Values(testObject1.number, testObject2.number);
-    }
-  }
-
-  @OutputFields({ "field1", "field2" })
-  public static class WithStreamAndTask
-  {
-    @Execute
-    @Stream("anotherStream")
-    @Task(3)
-    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
-                          @Field("inputField2") TestObjectParameter testObject2)
-    {
-      return new Values(testObject1.number, testObject2.number);
-    }
-  }
-
   @OutputFields({ "field1" })
   public static class WithSingularReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public int execute(@Field("inputField1") TestObjectParameter testObject1,
-                                       @Field("inputField2") TestObjectParameter testObject2)
+                       @Field("inputField2") TestObjectParameter testObject2)
     {
       return testObject1.number;
     }
@@ -246,10 +196,8 @@ public class EmissionTest
   public static class WithArrayReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public Integer[] execute(@Field("inputField1") TestObjectParameter testObject1,
-                         @Field("inputField2") TestObjectParameter testObject2)
+                             @Field("inputField2") TestObjectParameter testObject2)
     {
       return new Integer[] { testObject1.number, testObject2.number };
     }
@@ -259,8 +207,6 @@ public class EmissionTest
   public static class WithPrimitiveArrayReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public int[] execute(@Field("inputField1") TestObjectParameter testObject1,
                          @Field("inputField2") TestObjectParameter testObject2)
     {
@@ -272,10 +218,8 @@ public class EmissionTest
   public static class WithIterableReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public Iterable<Integer> execute(@Field("inputField1") TestObjectParameter testObject1,
-                             @Field("inputField2") TestObjectParameter testObject2)
+                                     @Field("inputField2") TestObjectParameter testObject2)
     {
       return new SomeIterable(testObject1.number, testObject2.number);
     }
@@ -285,8 +229,6 @@ public class EmissionTest
   public static class WithNullReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public Integer execute(@Field("inputField1") TestObjectParameter testObject1,
                            @Field("inputField2") TestObjectParameter testObject2)
     {
@@ -298,8 +240,6 @@ public class EmissionTest
   public static class WithVoidReturn
   {
     @Execute
-    @Stream("anotherStream")
-    @Task(3)
     public void execute(@Field("inputField1") TestObjectParameter testObject1,
                         @Field("inputField2") TestObjectParameter testObject2)
     {
