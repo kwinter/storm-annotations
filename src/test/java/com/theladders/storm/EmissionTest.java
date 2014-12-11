@@ -9,7 +9,6 @@ import java.util.Iterator;
 import org.junit.Before;
 import org.junit.Test;
 
-import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import com.theladders.storm.annotations.Execute;
@@ -22,8 +21,6 @@ import com.theladders.storm.annotations.Stream;
 public class EmissionTest extends AbstractAnnotatedBoltTest
 {
   private Object                 bolt;
-
-  private Tuple                  tuple;
 
   @Before
   public void prepareValues()
