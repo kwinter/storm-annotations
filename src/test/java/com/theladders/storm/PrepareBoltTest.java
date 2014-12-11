@@ -13,6 +13,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -52,7 +53,7 @@ public class PrepareBoltTest
     TestBolt bolt = new TestBolt();
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
 
-    annotatedBolt.prepare(null, null);
+    annotatedBolt.prepare(null, null, mock(OutputCollector.class));
 
     assertTrue("Should have been prepared", bolt.wasPrepared);
 
@@ -64,7 +65,7 @@ public class PrepareBoltTest
     TestBoltWithAllPrepareArguments bolt = new TestBoltWithAllPrepareArguments();
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
 
-    annotatedBolt.prepare(new HashMap(), mock(TopologyContext.class));
+    annotatedBolt.prepare(new HashMap(), mock(TopologyContext.class), mock(OutputCollector.class));
 
     assertTrue("Should have been prepared", bolt.wasPrepared);
 
@@ -76,7 +77,7 @@ public class PrepareBoltTest
     TestBoltWithPrepareArgumentsInReverseOrder bolt = new TestBoltWithPrepareArgumentsInReverseOrder();
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
 
-    annotatedBolt.prepare(new HashMap(), mock(TopologyContext.class));
+    annotatedBolt.prepare(new HashMap(), mock(TopologyContext.class), mock(OutputCollector.class));
 
     assertTrue("Should have been prepared", bolt.wasPrepared);
 

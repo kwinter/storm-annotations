@@ -7,31 +7,42 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
+import backtype.storm.task.OutputCollector;
 import backtype.storm.topology.FailedException;
 import backtype.storm.topology.ReportedFailedException;
+import backtype.storm.tuple.Tuple;
 
 import com.theladders.storm.annotations.FailTupleOn;
 import com.theladders.storm.annotations.ReportFailureOn;
 
 // TODO: handle multiple annotations of either
+// TODO: execute reflection once and hold onto the results for the entire run
 public class ExceptionHandler
 {
-  private final Method           executeMethod;
-  private final RuntimeException escapedException;
-  private FailTupleOn            failTupleOn;
-  private ReportFailureOn        reportFailureOn;
+  private final Method          executeMethod;
+  private final Throwable       escapedException;
+  private final OutputCollector outputCollector;
+  private final Tuple           tuple;
+  private FailTupleOn           failTupleOn;
+  private ReportFailureOn       reportFailureOn;
 
   public ExceptionHandler(Method executeMethod,
-                          RuntimeException escapedException)
+                          Throwable escapedException,
+                          OutputCollector outputCollector,
+                          Tuple tuple)
   {
     this.executeMethod = executeMethod;
     this.escapedException = escapedException;
+    this.outputCollector = outputCollector;
+    this.tuple = tuple;
   }
 
   public static void handle(Method executeMethod,
-                            RuntimeException escapedException)
+                            Throwable escapedException,
+                            OutputCollector outputCollector,
+                            Tuple tuple)
   {
-    new ExceptionHandler(executeMethod, escapedException).handle();
+    new ExceptionHandler(executeMethod, escapedException, outputCollector, tuple).handle();
   }
 
   public void handle()
@@ -41,7 +52,15 @@ public class ExceptionHandler
     boolean matchesFailTuple = exceptionMatchesFailTuple();
     boolean matchesReportFailure = exceptionMatchesReportFailure();
 
-    if (matchesFailTuple && matchesReportFailure)
+    if (escapedException instanceof ReportedFailedException)
+    {
+      reportFailureAndFailTuple();
+    }
+    else if (escapedException instanceof FailedException)
+    {
+      failTuple();
+    }
+    else if (matchesFailTuple && matchesReportFailure)
     {
       if (failTupleAnnotationIsFirst())
       {
@@ -49,20 +68,28 @@ public class ExceptionHandler
       }
       else
       {
-        reportFailure();
+        reportFailureAndFailTuple();
       }
     }
-    if (matchesFailTuple)
+    else if (matchesFailTuple)
     {
       failTuple();
     }
-    if (matchesReportFailure)
+    else if (matchesReportFailure)
     {
-      reportFailure();
+      reportFailureAndFailTuple();
     }
-    throw escapedException;
+    else if (escapedException instanceof RuntimeException)
+    {
+      throw (RuntimeException) escapedException;
+    }
+    else
+    // checked exception escaped
+    {
+      // TODO(kw): figure out the best way to handle this
+      throw new RuntimeException(escapedException);
+    }
   }
-
 
   private boolean failTupleAnnotationIsFirst()
   {
@@ -97,14 +124,16 @@ public class ExceptionHandler
     return false;
   }
 
-
-  private void reportFailure()
+  private void reportFailureAndFailTuple()
   {
-    throw new ReportedFailedException(escapedException);
+    outputCollector.reportError(escapedException);
+    failTuple();
+    // throw new ReportedFailedException(escapedException);
   }
 
   private void failTuple()
   {
-    throw new FailedException(escapedException);
+    outputCollector.fail(tuple);
+    // throw new FailedException(escapedException);
   }
 }

@@ -2,22 +2,31 @@ package com.theladders.storm.emit;
 
 import java.util.List;
 
-import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.tuple.Tuple;
 
 public class StreamEmission implements EmissionStrategy
 {
+  private final boolean shouldAnchor;
+  private final String  streamId;
 
-  private final String streamId;
-
-  public StreamEmission(String streamId)
+  public StreamEmission(boolean shouldAnchor,
+                        String streamId)
   {
+    this.shouldAnchor = shouldAnchor;
     this.streamId = streamId;
   }
 
   @Override
-  public void emit(List<Object> tuple,
-                   BasicOutputCollector outputCollector)
+  public void emit(Tuple inputTuple,
+                   List<Object> outgoingTuple,
+                   OutputCollector outputCollector)
   {
-    outputCollector.emit(streamId, tuple);
+    outputCollector.emit(streamId, outgoingTuple);
+
+    if (this.shouldAnchor)
+    {
+      outputCollector.emit(streamId, inputTuple, outgoingTuple);
+    }
   }
 }

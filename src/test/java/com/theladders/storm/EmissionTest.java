@@ -49,7 +49,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
 
     verifyEmissionOn("anotherStream");
     Object[] expectedValues = { 7, 9 };
-    thenTheOutputValuesAre(expectedValues);
+    thenTheOutputValuesAre("anotherStream", expectedValues);
     verifyAck();
   }
 

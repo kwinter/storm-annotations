@@ -3,7 +3,7 @@ package com.theladders.storm.util;
 public class ExceptionUtils
 {
 
-  public static boolean exceptionIsAssignableToAny(RuntimeException exception,
+  public static boolean exceptionIsAssignableToAny(Throwable exception,
                                                    Class<? extends Throwable>[] throwableClasses)
   {
     for (Class<? extends Throwable> throwableClass : throwableClasses)

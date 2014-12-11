@@ -10,6 +10,8 @@ import java.util.List;
 
 import backtype.storm.tuple.Values;
 
+import com.theladders.storm.execute.exception.TargetBoltExecutionFailed;
+
 // TODO: this is ugly. clean it up
 public class Executor
 {
@@ -78,14 +80,7 @@ public class Executor
     }
     catch (InvocationTargetException e)
     {
-      Throwable targetException = e.getTargetException();
-      if (targetException instanceof RuntimeException)
-      {
-        RuntimeException escapedException = (RuntimeException) targetException;
-        ExceptionHandler.handle(executeMethod, escapedException);
-      }
-      // TODO(kw): figure out the best way to handle this
-      throw new RuntimeException(e);
+      throw new TargetBoltExecutionFailed(e.getTargetException());
     }
     return result;
   }

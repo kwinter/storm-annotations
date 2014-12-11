@@ -20,7 +20,6 @@ import org.mockito.MockitoAnnotations;
 
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.OutputCollector;
-import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.FailedException;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.ReportedFailedException;
@@ -133,11 +132,10 @@ public class ReportErrorOnTest
     when(context.getComponentOutputFields(anyString(), anyString())).thenReturn(new Fields("inputField1", "inputField2"));
     tuple = new TupleImpl(context, list, 1, "streamId");
 
-    BasicBoltExecutor basicBoltExecutor = new BasicBoltExecutor(annotatedBolt);
-    basicBoltExecutor.prepare(null, null, outputCollector);
-    basicBoltExecutor.declareOutputFields(outputFieldsDeclarer);
-    basicBoltExecutor.execute(tuple);
-    basicBoltExecutor.cleanup();
+    annotatedBolt.prepare(null, null, outputCollector);
+    annotatedBolt.declareOutputFields(outputFieldsDeclarer);
+    annotatedBolt.execute(tuple);
+    annotatedBolt.cleanup();
   }
 
   private void thenFailureWasReportedFor(Class<? extends Throwable> expectedErrorClass)

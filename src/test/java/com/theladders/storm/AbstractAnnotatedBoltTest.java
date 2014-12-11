@@ -23,13 +23,11 @@ import org.mockito.MockitoAnnotations;
 import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 
 public abstract class AbstractAnnotatedBoltTest
 {
@@ -67,11 +65,10 @@ public abstract class AbstractAnnotatedBoltTest
     tuple = new TupleImpl(context, list, 1, "streamId");
 
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(targetBolt);
-    BasicBoltExecutor basicBoltExecutor = new BasicBoltExecutor(annotatedBolt);
-    basicBoltExecutor.prepare(new HashMap(), mock(TopologyContext.class), outputCollector);
-    basicBoltExecutor.declareOutputFields(outputFieldsDeclarer);
-    basicBoltExecutor.execute(tuple);
-    basicBoltExecutor.cleanup();
+    annotatedBolt.prepare(new HashMap(), mock(TopologyContext.class), outputCollector);
+    annotatedBolt.declareOutputFields(outputFieldsDeclarer);
+    annotatedBolt.execute(tuple);
+    annotatedBolt.cleanup();
   }
 
   protected void givenInputFields(String... fields)
@@ -93,8 +90,22 @@ public abstract class AbstractAnnotatedBoltTest
 
   protected void thenTheOutputValuesAre(Object... values)
   {
-    verify(outputCollector).emit(eq(Utils.DEFAULT_STREAM_ID), eq(tuple), valuesArgumentCaptor.capture());
-    Values returnedValues = valuesArgumentCaptor.getValue();
+    verify(outputCollector).emit(eq(tuple), valuesArgumentCaptor.capture());
+    List<Object> returnedValues = valuesArgumentCaptor.getValue();
+    assertEquals(values.length, returnedValues.size());
+    for (int i = 0; i < values.length; i++)
+    {
+      Object expectedValue = values[i];
+      Object actualValue = returnedValues.get(i);
+      assertEquals(expectedValue, actualValue);
+    }
+  }
+
+  protected void thenTheOutputValuesAre(String streamId,
+                                        Object... values)
+  {
+    verify(outputCollector).emit(eq(streamId), eq(tuple), valuesArgumentCaptor.capture());
+    List<Object> returnedValues = valuesArgumentCaptor.getValue();
     assertEquals(values.length, returnedValues.size());
     for (int i = 0; i < values.length; i++)
     {
@@ -126,7 +137,7 @@ public abstract class AbstractAnnotatedBoltTest
 
   protected void verifyBasicEmission()
   {
-    verifyEmissionOn(Utils.DEFAULT_STREAM_ID);
+    verify(outputCollector).emit(eq(tuple), valuesArgumentCaptor.capture());
   }
 
   protected void verifyEmissionOn(String streamId)
