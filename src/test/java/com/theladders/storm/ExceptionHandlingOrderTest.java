@@ -1,105 +1,83 @@
 package com.theladders.storm;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import backtype.storm.task.GeneralTopologyContext;
-import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.topology.FailedException;
-import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.ReportedFailedException;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 
-import com.theladders.storm.RecordingTestBolt.TestObjectParameter;
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.FailTupleOn;
 import com.theladders.storm.annotations.ReportFailureOn;
 
 public class ExceptionHandlingOrderTest extends AbstractAnnotatedBoltTest
 {
-
-  @Mock
-  private OutputFieldsDeclarer   outputFieldsDeclarer;
-
-  @Captor
-  private ArgumentCaptor<Fields> fieldsArgumentCaptor;
-
-  @Mock
-  private BasicOutputCollector   basicOutputCollector;
-
-  @Captor
-  private ArgumentCaptor<Values> valuesArgumentCaptor;
-
   private Object                 targetBolt;
 
-  @Override
-  @Before
-  public void setup()
-  {
-    MockitoAnnotations.initMocks(this);
-  }
-
-  @Test(expected = FailedException.class)
+  @Test
   public void failTupleSubclassBeforeReportFailureSuperclass_failTuple()
   {
     targetBolt = new FailTupleSubclassFirstBolt();
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
+  @Test
   public void failTupleSubclassAfterReportFailureSuperclass_reportFailure()
   {
     targetBolt = new FailTupleSubclassSecondBolt();
     executeBolt();
+
+    thenFailureWasReportedFor(ReportedFailedException.class);
+    thenTupleWasFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
+  @Test
   public void reportFailureSubclassBeforeReportFailureSuperclass_reportFailure()
   {
     targetBolt = new ReportFailureSubclassFirstBolt();
     executeBolt();
+
+    thenFailureWasReportedFor(ReportedFailedException.class);
+    thenTupleWasFailed();
   }
 
-  @Test(expected = FailedException.class)
+  @Test
   public void reportFailureSubclassAfterReportFailureSuperclass_failTuple()
   {
     targetBolt = new ReportFailureSubclassSecondBolt();
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = FailedException.class)
+  @Test
   public void failTupleSameclass_before_reportFailure_failTuple()
   {
     targetBolt = new FailTupleSameClassFirstBolt();
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
+  @Test
   public void reportFailureSameclass_before_failTuple_reportFailure()
   {
     targetBolt = new ReportFailureSameClassFirstBolt();
     executeBolt();
+
+    thenFailureWasReportedFor(ReportedFailedException.class);
+    thenTupleWasFailed();
   }
 
   private void executeBolt()
   {
-    List list = Arrays.asList(new TestObjectParameter(7), new TestObjectParameter(9));
-    GeneralTopologyContext context = mock(GeneralTopologyContext.class);
-    when(context.getComponentOutputFields(anyString(), anyString())).thenReturn(new Fields("inputField1", "inputField2"));
-    new AnnotatedBolt(targetBolt).execute(new TupleImpl(context, list, 1, "streamId"), basicOutputCollector);
+    givenInputFields("");
+    givenInputValues("");
+    whenRunning(targetBolt);
   }
 
   public static class FailTupleSubclassFirstBolt

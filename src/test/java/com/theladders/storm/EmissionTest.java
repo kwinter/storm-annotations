@@ -1,11 +1,14 @@
 package com.theladders.storm;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -21,11 +24,14 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import backtype.storm.task.GeneralTopologyContext;
-import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
 
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.Field;
@@ -44,12 +50,14 @@ public class EmissionTest
   private ArgumentCaptor<Fields> fieldsArgumentCaptor;
 
   @Mock
-  private BasicOutputCollector   basicOutputCollector;
+  private OutputCollector        outputCollector;
 
   @Captor
   private ArgumentCaptor<Values> valuesArgumentCaptor;
 
   private Object                 bolt;
+
+  private Tuple                  tuple;
 
   @Before
   public void setup()
@@ -63,9 +71,9 @@ public class EmissionTest
     bolt = new TypicalBolt();
     execute();
 
-    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
-
+    verifyBasicEmission();
     withValues(7, 9);
+    verifyAck();
   }
 
   @Test
@@ -74,9 +82,9 @@ public class EmissionTest
     bolt = new WithStream();
     execute();
 
-    verify(basicOutputCollector).emit(eq("anotherStream"), valuesArgumentCaptor.capture());
-
+    verifyEmissionOn("anotherStream");
     withValues(7, 9);
+    verifyAck();
   }
 
   @Test
@@ -85,9 +93,9 @@ public class EmissionTest
     bolt = new WithSingularReturn();
     execute();
 
-    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
-
+    verifyBasicEmission();
     withValues(7);
+    verifyAck();
   }
 
   @Test
@@ -96,16 +104,26 @@ public class EmissionTest
     bolt = new WithArrayReturn();
     execute();
 
-    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
-
+    verifyBasicEmission();
     withValues(7, 9);
+    verifyAck();
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void withPrimitiveArrayReturn()
   {
-    bolt = new WithPrimitiveArrayReturn();
-    execute();
+    try
+    {
+      bolt = new WithPrimitiveArrayReturn();
+      execute();
+      fail("Should have thrown an exception");
+    }
+    catch (RuntimeException e)
+    {
+      // expected
+    }
+    verifyNothingWasEmitted();
+    verifyNoAck();
   }
 
   @Test
@@ -114,9 +132,9 @@ public class EmissionTest
     bolt = new WithIterableReturn();
     execute();
 
-    verify(basicOutputCollector).emit(valuesArgumentCaptor.capture());
-
+    verifyBasicEmission();
     withValues(7, 9);
+    verifyAck();
   }
 
   @Test
@@ -124,7 +142,8 @@ public class EmissionTest
   {
     bolt = new WithNullReturn();
     execute();
-    verifyZeroInteractions(basicOutputCollector);
+    verifyNothingWasEmitted();
+    verifyAck();
   }
 
   @Test
@@ -132,20 +151,23 @@ public class EmissionTest
   {
     bolt = new WithVoidReturn();
     execute();
-    verifyZeroInteractions(basicOutputCollector);
+    verifyNothingWasEmitted();
+    verifyAck();
   }
 
   private void execute()
   {
-    AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
-    annotatedBolt.prepare(null, null);
-    annotatedBolt.declareOutputFields(outputFieldsDeclarer);
-
     List list = Arrays.asList(new TestObjectParameter(7), new TestObjectParameter(9));
     GeneralTopologyContext context = mock(GeneralTopologyContext.class);
     when(context.getComponentOutputFields(anyString(), anyString())).thenReturn(new Fields("inputField1", "inputField2"));
-    annotatedBolt.execute(new TupleImpl(context, list, 1, "streamId"), basicOutputCollector);
-    annotatedBolt.cleanup();
+    tuple = new TupleImpl(context, list, 1, "streamId");
+
+    AnnotatedBolt annotatedBolt = new AnnotatedBolt(bolt);
+    BasicBoltExecutor basicBoltExecutor = new BasicBoltExecutor(annotatedBolt);
+    basicBoltExecutor.prepare(null, null, outputCollector);
+    basicBoltExecutor.declareOutputFields(outputFieldsDeclarer);
+    basicBoltExecutor.execute(tuple);
+    basicBoltExecutor.cleanup();
   }
 
   private void withValues(Object... expectedValues)
@@ -156,6 +178,31 @@ public class EmissionTest
     {
       assertEquals(expectedValues[i], values.get(i));
     }
+  }
+
+  private void verifyBasicEmission()
+  {
+    verifyEmissionOn(Utils.DEFAULT_STREAM_ID);
+  }
+
+  private void verifyEmissionOn(String streamId)
+  {
+    verify(outputCollector).emit(eq(streamId), eq(tuple), valuesArgumentCaptor.capture());
+  }
+
+  private void verifyNothingWasEmitted()
+  {
+    verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+  }
+
+  private void verifyAck()
+  {
+    verify(outputCollector).ack(tuple);
+  }
+
+  private void verifyNoAck()
+  {
+    verify(outputCollector, never()).ack(tuple);
   }
 
   @OutputFields({ "field1", "field2" })

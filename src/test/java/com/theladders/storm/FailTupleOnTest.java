@@ -1,16 +1,11 @@
 package com.theladders.storm;
 
+import static org.junit.Assert.fail;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.FailedException;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
 import com.theladders.storm.RecordingTestBolt.TestObjectParameter;
@@ -21,60 +16,65 @@ import com.theladders.storm.annotations.OutputFields;
 
 public class FailTupleOnTest extends AbstractAnnotatedBoltTest
 {
-
-  @Mock
-  private OutputFieldsDeclarer   outputFieldsDeclarer;
-
-  @Captor
-  private ArgumentCaptor<Fields> fieldsArgumentCaptor;
-
-  @Mock
-  private BasicOutputCollector   basicOutputCollector;
-
-  @Captor
-  private ArgumentCaptor<Values> valuesArgumentCaptor;
-
   private Object                 bolt;
 
-  @Override
   @Before
-  public void setup()
+  public void prepareValues()
   {
-    MockitoAnnotations.initMocks(this);
     givenInputFields("inputField1", "inputField2");
     givenInputValues(new TestObjectParameter(7), new TestObjectParameter(9));
   }
 
-  @Test(expected = MyException.class)
+  @Test
   public void noExceptionConfigRethrowsException()
   {
     bolt = new ExceptionLeakingBolt();
 
-    executeBolt();
+    try
+    {
+      executeBolt();
+      fail("Should have thrown exception");
+    }
+    catch (MyException e)
+    {
+
+    }
+
+    thenFailureWasNotReported();
+    thenTupleWasNotFailed();
   }
 
-  @Test(expected = FailedException.class)
+  @Test
   public void canFailTupleForUncaughtExceptions()
   {
     bolt = new FailTupleOnExceptionBolt();
 
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = FailedException.class)
+  @Test
   public void canFailTupleForUncaughtExceptionsBasedOnSuperclass()
   {
     bolt = new FailTupleOnExceptionSuperclassBolt();
 
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = FailedException.class)
-  public void failedExceptionsStillGoThrough()
+  @Test
+  public void failedExceptionsAreFailed()
   {
     bolt = new BoltThatThrowsFailedException();
 
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
   private void executeBolt()

@@ -1,7 +1,11 @@
 package com.theladders.storm;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -15,11 +19,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import backtype.storm.task.GeneralTopologyContext;
-import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.topology.BasicBoltExecutor;
 import backtype.storm.topology.FailedException;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.ReportedFailedException;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 
@@ -39,12 +45,13 @@ public class ReportErrorOnTest
   private ArgumentCaptor<Fields> fieldsArgumentCaptor;
 
   @Mock
-  private BasicOutputCollector   basicOutputCollector;
+  private OutputCollector        outputCollector;
 
   @Captor
   private ArgumentCaptor<Values> valuesArgumentCaptor;
 
   private AnnotatedBolt          annotatedBolt;
+  private Tuple                  tuple;
 
   @Before
   public void setup()
@@ -52,49 +59,71 @@ public class ReportErrorOnTest
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test(expected = MyException.class)
+  @Test
   public void noExceptionConfigRethrowsException()
   {
     ExceptionLeakingBolt bolt = new ExceptionLeakingBolt();
     annotatedBolt = new AnnotatedBolt(bolt);
 
-    executeBolt();
+    try
+    {
+      executeBolt();
+      fail("Should have thrown an exception");
+    }
+    catch (MyException e)
+    {
+
+    }
+    thenFailureWasNotReported();
+    thenTupleWasNotFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
+  @Test
   public void canReportFailureForUncaughtExceptions()
   {
     ReportFailureOnExceptionBolt bolt = new ReportFailureOnExceptionBolt();
     annotatedBolt = new AnnotatedBolt(bolt);
 
     executeBolt();
+
+    thenFailureWasReportedFor(MyException.class);
+    thenTupleWasFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
+  @Test
   public void canReportFailureForUncaughtExceptionsBasedOnSuperclass()
   {
     ReportFailureOnExceptionSuperclassBolt bolt = new ReportFailureOnExceptionSuperclassBolt();
     annotatedBolt = new AnnotatedBolt(bolt);
 
     executeBolt();
+
+    thenFailureWasReportedFor(MyException.class);
+    thenTupleWasFailed();
   }
 
-  @Test(expected = FailedException.class)
-  public void failedExceptionsStillGoThrough()
+  @Test
+  public void failedExceptionsAreFailed()
   {
     BoltThatThrowsFailedException bolt = new BoltThatThrowsFailedException();
     annotatedBolt = new AnnotatedBolt(bolt);
 
     executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
   }
 
-  @Test(expected = ReportedFailedException.class)
-  public void reportedFailedExceptionsStillGoThrough()
+  @Test
+  public void reportedFailedExceptionsAreReportedAndFailed()
   {
     BoltThatThrowsReportReportedFailedException bolt = new BoltThatThrowsReportReportedFailedException();
     annotatedBolt = new AnnotatedBolt(bolt);
 
     executeBolt();
+
+    thenFailureWasReportedFor(MyException.class);
+    thenTupleWasFailed();
   }
 
   private void executeBolt()
@@ -102,7 +131,33 @@ public class ReportErrorOnTest
     List list = Arrays.asList(new TestObjectParameter(7), new TestObjectParameter(9));
     GeneralTopologyContext context = mock(GeneralTopologyContext.class);
     when(context.getComponentOutputFields(anyString(), anyString())).thenReturn(new Fields("inputField1", "inputField2"));
-    annotatedBolt.execute(new TupleImpl(context, list, 1, "streamId"), basicOutputCollector);
+    tuple = new TupleImpl(context, list, 1, "streamId");
+
+    BasicBoltExecutor basicBoltExecutor = new BasicBoltExecutor(annotatedBolt);
+    basicBoltExecutor.prepare(null, null, outputCollector);
+    basicBoltExecutor.declareOutputFields(outputFieldsDeclarer);
+    basicBoltExecutor.execute(tuple);
+    basicBoltExecutor.cleanup();
+  }
+
+  private void thenFailureWasReportedFor(Class<? extends Throwable> expectedErrorClass)
+  {
+    verify(outputCollector).reportError(any(expectedErrorClass));
+  }
+
+  private void thenFailureWasNotReported()
+  {
+    verify(outputCollector, never()).reportError(any(Throwable.class));
+  }
+
+  private void thenTupleWasFailed()
+  {
+    verify(outputCollector).fail(tuple);
+  }
+
+  private void thenTupleWasNotFailed()
+  {
+    verify(outputCollector, never()).fail(tuple);
   }
 
   @OutputFields({ "field1", "field2" })
