@@ -94,7 +94,21 @@ public abstract class AbstractAnnotatedBoltTest
   protected void thenTheOutputValuesAre(Object... values)
   {
     verify(outputCollector).emit(eq(Utils.DEFAULT_STREAM_ID), eq(tuple), valuesArgumentCaptor.capture());
-    Values returnedValues = valuesArgumentCaptor.getValue();
+    List<Object> returnedValues = valuesArgumentCaptor.getValue();
+    assertEquals(values.length, returnedValues.size());
+    for (int i = 0; i < values.length; i++)
+    {
+      Object expectedValue = values[i];
+      Object actualValue = returnedValues.get(i);
+      assertEquals(expectedValue, actualValue);
+    }
+  }
+
+  protected void thenTheOutputValuesAre(String streamId,
+                                        Object... values)
+  {
+    verify(outputCollector).emit(eq(streamId), eq(tuple), valuesArgumentCaptor.capture());
+    List<Object> returnedValues = valuesArgumentCaptor.getValue();
     assertEquals(values.length, returnedValues.size());
     for (int i = 0; i < values.length; i++)
     {
