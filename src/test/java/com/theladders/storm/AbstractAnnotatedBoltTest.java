@@ -2,6 +2,7 @@ package com.theladders.storm;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -23,7 +24,6 @@ import backtype.storm.task.GeneralTopologyContext;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicBoltExecutor;
-import backtype.storm.topology.IComponent;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -69,17 +69,9 @@ public abstract class AbstractAnnotatedBoltTest
     AnnotatedBolt annotatedBolt = new AnnotatedBolt(targetBolt);
     BasicBoltExecutor basicBoltExecutor = new BasicBoltExecutor(annotatedBolt);
     basicBoltExecutor.prepare(new HashMap(), mock(TopologyContext.class), outputCollector);
-    declareOutputFields(basicBoltExecutor);
+    basicBoltExecutor.declareOutputFields(outputFieldsDeclarer);
     basicBoltExecutor.execute(tuple);
     basicBoltExecutor.cleanup();
-  }
-
-  private void declareOutputFields(IComponent component)
-  {
-    component.declareOutputFields(outputFieldsDeclarer);
-    // TODO: make sure there's a test for output fields somewhere
-    // verify(outputFieldsDeclarer).declare(fieldsArgumentCaptor.capture());
-    // declaredFields = fieldsArgumentCaptor.getValue();
   }
 
   protected void givenInputFields(String... fields)
@@ -130,5 +122,30 @@ public abstract class AbstractAnnotatedBoltTest
   protected void thenTupleWasNotFailed()
   {
     verify(outputCollector, never()).fail(tuple);
+  }
+
+  protected void verifyBasicEmission()
+  {
+    verifyEmissionOn(Utils.DEFAULT_STREAM_ID);
+  }
+
+  protected void verifyEmissionOn(String streamId)
+  {
+    verify(outputCollector).emit(eq(streamId), eq(tuple), valuesArgumentCaptor.capture());
+  }
+
+  protected void verifyNothingWasEmitted()
+  {
+    verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+  }
+
+  protected void verifyAck()
+  {
+    verify(outputCollector).ack(tuple);
+  }
+
+  protected void verifyNoAck()
+  {
+    verify(outputCollector, never()).ack(tuple);
   }
 }
