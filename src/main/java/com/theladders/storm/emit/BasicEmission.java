@@ -19,11 +19,13 @@ public class BasicEmission implements EmissionStrategy
                    List<Object> outgoingTuple,
                    OutputCollector outputCollector)
   {
-    outputCollector.emit(outgoingTuple);
-
     if (this.shouldAnchor)
     {
       outputCollector.emit(inputTuple, outgoingTuple);
+    }
+    else
+    {
+      outputCollector.emit(outgoingTuple);
     }
   }
 }

@@ -22,11 +22,13 @@ public class StreamEmission implements EmissionStrategy
                    List<Object> outgoingTuple,
                    OutputCollector outputCollector)
   {
-    outputCollector.emit(streamId, outgoingTuple);
-
     if (this.shouldAnchor)
     {
       outputCollector.emit(streamId, inputTuple, outgoingTuple);
+    }
+    else
+    {
+      outputCollector.emit(streamId, outgoingTuple);
     }
   }
 }
