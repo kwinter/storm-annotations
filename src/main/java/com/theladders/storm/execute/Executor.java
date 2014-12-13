@@ -32,7 +32,7 @@ public class Executor
   }
 
   // TODO: better error handling, tests
-  public List<Object> executeWith(Object[] incomingValues)
+  public List<Object> executeWith(ExecuteParameters incomingValues)
   {
     Object result = resultOf(incomingValues);
 
@@ -63,12 +63,12 @@ public class Executor
     return new Values(result);
   }
 
-  private Object resultOf(Object[] incomingValues)
+  private Object resultOf(ExecuteParameters incomingValues)
   {
     Object result;
     try
     {
-      result = executeMethod.invoke(targetBolt, incomingValues);
+      result = executeMethod.invoke(targetBolt, incomingValues.actualParameters());
     }
     catch (IllegalAccessException e)
     {

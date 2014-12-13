@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -49,7 +50,7 @@ public abstract class AbstractAnnotatedBoltTest
 
   protected Fields               declaredFields;
 
-  private Tuple                  tuple;
+  protected Tuple                tuple;
 
   @Before
   public void setup()
@@ -88,9 +89,8 @@ public abstract class AbstractAnnotatedBoltTest
     assertEquals(Arrays.asList("field1", "field2"), fields.toList());
   }
 
-  protected void thenTheOutputValuesAre(Object... values)
+  private void thenTheOutputValuesAre(Object... values)
   {
-    verify(outputCollector).emit(eq(tuple), valuesArgumentCaptor.capture());
     List<Object> returnedValues = valuesArgumentCaptor.getValue();
     assertEquals(values.length, returnedValues.size());
     for (int i = 0; i < values.length; i++)
@@ -135,19 +135,88 @@ public abstract class AbstractAnnotatedBoltTest
     verify(outputCollector, never()).fail(tuple);
   }
 
-  protected void verifyBasicEmission()
+  protected void verifyEmission(Object... values)
   {
-    verify(outputCollector).emit(eq(tuple), valuesArgumentCaptor.capture());
+    verify(outputCollector).emit(valuesArgumentCaptor.capture());
+    // verify(outputCollector, never()).emit(anyList());
+    verify(outputCollector, never()).emit(any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), anyList());
+    verify(outputCollector, never()).emit(any(Tuple.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+
+    verify(outputCollector, never()).emitDirect(any(int.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
+
+    thenTheOutputValuesAre(values);
   }
 
-  protected void verifyEmissionOn(String streamId)
+  protected void verifyEmission(Tuple anchor,
+                                Object... values)
   {
-    verify(outputCollector).emit(eq(streamId), eq(tuple), valuesArgumentCaptor.capture());
+
+    verify(outputCollector, never()).emit(anyList());
+    verify(outputCollector, never()).emit(any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), anyList());
+
+    // verify(outputCollector, never()).emit(any(Tuple.class), anyList());
+    verify(outputCollector).emit(eq(anchor), valuesArgumentCaptor.capture());
+
+    verify(outputCollector, never()).emit(anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+
+    verify(outputCollector, never()).emitDirect(any(int.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
+
+    thenTheOutputValuesAre(values);
+  }
+
+  protected void verifyEmission(Tuple anchor,
+                                String streamId,
+                                Object... values)
+  {
+    verify(outputCollector, never()).emit(anyList());
+    verify(outputCollector, never()).emit(any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), anyList());
+    verify(outputCollector, never()).emit(any(Tuple.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Collection.class), anyList());
+    // verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+    verify(outputCollector).emit(eq(streamId), eq(anchor), valuesArgumentCaptor.capture());
+
+    verify(outputCollector, never()).emitDirect(any(int.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
+
+    thenTheOutputValuesAre(values);
   }
 
   protected void verifyNothingWasEmitted()
   {
+    verify(outputCollector, never()).emit(anyList());
+    verify(outputCollector, never()).emit(any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), anyList());
+    verify(outputCollector, never()).emit(any(Tuple.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Collection.class), anyList());
     verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+
+    verify(outputCollector, never()).emitDirect(any(int.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
   }
 
   protected void verifyAck()

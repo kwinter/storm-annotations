@@ -9,33 +9,44 @@ import backtype.storm.tuple.Tuple;
 import com.theladders.storm.emit.EmissionStrategy;
 import com.theladders.storm.emit.EmissionStrategyFactory;
 import com.theladders.storm.execute.exception.TargetBoltExecutionFailed;
+import com.theladders.storm.execute.field.FieldExtractors;
+import com.theladders.storm.prepare.Preparer;
 
 public class TupleExecutor
 {
-  private final TupleValueExtractor tupleValueExtractor;
-  private final Executor            executor;
-  private final EmissionStrategy    emissionStrategy;
-  private final Method              executeMethod;
+  private final FieldExtractors  fieldExtractors;
+  private final Executor         executor;
+  private final EmissionStrategy emissionStrategy;
+  private final Method           executeMethod;
 
-  private TupleExecutor(Object targetBolt,
+  private TupleExecutor(FieldExtractors fieldExtractors,
+                        Executor executor,
+                        EmissionStrategy emissionStrategy,
                         Method executeMethod)
   {
-    this.tupleValueExtractor = TupleValueExtractor.extractorFor(executeMethod);
-    this.executor = Executor.with(targetBolt, executeMethod);
-    this.emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod);
+    this.fieldExtractors = fieldExtractors;
+    this.executor = executor;
+    this.emissionStrategy = emissionStrategy;
     this.executeMethod = executeMethod;
   }
 
   public static TupleExecutor executorFor(Object targetBolt,
-                                          Method executeMethod)
+                                          Method executeMethod,
+                                          OutputCollector outputCollector,
+                                          Preparer preparer)
   {
-    return new TupleExecutor(targetBolt, executeMethod);
+    FieldExtractors fieldExtractors = FieldExtractors.fieldExtractorsFor(executeMethod, outputCollector);
+    Executor executor = Executor.with(targetBolt, executeMethod);
+    EmissionStrategy emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod,
+                                                                                    fieldExtractors,
+                                                                                    preparer);
+    return new TupleExecutor(fieldExtractors, executor, emissionStrategy, executeMethod);
   }
 
   public void execute(Tuple tuple,
                       OutputCollector outputCollector)
   {
-    Object[] incomingValues = incomingValuesFrom(tuple);
+    ExecuteParameters incomingValues = incomingValuesFrom(tuple);
     try
     {
       List<Object> outgoingValues = executeWith(incomingValues);
@@ -52,12 +63,12 @@ public class TupleExecutor
     }
   }
 
-  private Object[] incomingValuesFrom(Tuple tuple)
+  private ExecuteParameters incomingValuesFrom(Tuple tuple)
   {
-    return tupleValueExtractor.valuesFrom(tuple);
+    return fieldExtractors.valuesFrom(tuple);
   }
 
-  private List<Object> executeWith(Object[] incomingValues)
+  private List<Object> executeWith(ExecuteParameters incomingValues)
   {
     return executor.executeWith(incomingValues);
   }

@@ -18,7 +18,7 @@ public class InputTest extends AbstractAnnotatedBoltTest
     givenInputFields("inputField1", "inputField2", "inputField3", "inputField4");
     givenInputValues(5, "test", true, 2.45f);
     whenRunning(new PrimitiveInputBolt());
-    thenTheOutputValuesAre(10, "test executed", true, 2.45f);
+    verifyEmission(tuple, 10, "test executed", true, 2.45f);
   }
 
   @Test
@@ -27,7 +27,7 @@ public class InputTest extends AbstractAnnotatedBoltTest
     givenInputFields("inputField1", "inputField2", "inputField3", "inputField4");
     givenInputValues(5, "test", true, 2.45f);
     whenRunning(new TupleInputBolt());
-    thenTheOutputValuesAre(10, "test executed", true, 2.45f);
+    verifyEmission(tuple, 10, "test executed", true, 2.45f);
   }
 
   @Test
@@ -36,7 +36,7 @@ public class InputTest extends AbstractAnnotatedBoltTest
     givenInputFields("inputField1", "inputField2", "inputField3", "inputField4");
     givenInputValues(5, "test", true, 2.45f);
     whenRunning(new IndexedInputBolt());
-    thenTheOutputValuesAre(10, "test executed", true, 2.45f);
+    verifyEmission(tuple, 10, "test executed", true, 2.45f);
   }
 
   @Test
@@ -45,7 +45,7 @@ public class InputTest extends AbstractAnnotatedBoltTest
     givenInputFields("inputField1", "inputField2", "inputField3", "inputField4");
     givenInputValues(5, "test", true, 2.45f);
     whenRunning(new MixedInputBolt());
-    thenTheOutputValuesAre(10, "test executed", true, 2.45f);
+    verifyEmission(tuple, 10, "test executed", true, 2.45f);
   }
 
   @OutputFields({ "field1", "field2", "field3", "field4" })

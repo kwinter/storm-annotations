@@ -18,29 +18,25 @@ import backtype.storm.tuple.Tuple;
 import com.theladders.storm.annotations.Cleanup;
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.OutputFields;
-import com.theladders.storm.annotations.Prepare;
 import com.theladders.storm.execute.TupleExecutor;
 import com.theladders.storm.invoke.CachedMethodInvoker;
+import com.theladders.storm.prepare.Preparer;
 
 public class AnnotatedBolt extends BaseRichBolt
 {
   private final Object              targetBolt;
   private final Fields              outputFields;
-  private final CachedMethodInvoker prepareInvoker;
-  private final TupleExecutor       tupleExecutor;
+  private final Preparer            preparer;
   private final CachedMethodInvoker cleanupInvoker;
 
   private OutputCollector           outputCollector;
+  private TupleExecutor             tupleExecutor;
 
   public AnnotatedBolt(Object targetBolt)
   {
     this.targetBolt = targetBolt;
     this.outputFields = outputFieldsFor(targetBolt.getClass());
-    this.prepareInvoker = CachedMethodInvoker.using(targetBolt.getClass(),
-                                                    Prepare.class,
-                                                    Map.class,
-                                                    TopologyContext.class);
-    this.tupleExecutor = TupleExecutor.executorFor(targetBolt, executeMethodFor(targetBolt.getClass()));
+    this.preparer = Preparer.preparerFor(targetBolt.getClass());
     this.cleanupInvoker = CachedMethodInvoker.using(targetBolt.getClass(), Cleanup.class);
   }
 
@@ -59,8 +55,11 @@ public class AnnotatedBolt extends BaseRichBolt
                       OutputCollector collector)
   {
     outputCollector = collector;
-    // invokeMethodWith(targetBolt, Prepare.class, configMap, topologyContext);
-    prepareInvoker.invokeWith(targetBolt, configMap, topologyContext);
+    preparer.prepareWith(targetBolt, configMap, topologyContext, collector);
+    tupleExecutor = TupleExecutor.executorFor(targetBolt,
+                                              executeMethodFor(targetBolt.getClass()),
+                                              outputCollector,
+                                              preparer);
   }
 
   @Override
@@ -72,7 +71,6 @@ public class AnnotatedBolt extends BaseRichBolt
   @Override
   public void cleanup()
   {
-    // invokeMethodWith(targetBolt, Cleanup.class);
     cleanupInvoker.invokeWith(targetBolt);
   }
 

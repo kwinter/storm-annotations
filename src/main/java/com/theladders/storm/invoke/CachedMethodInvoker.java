@@ -72,6 +72,21 @@ public class CachedMethodInvoker
     }
   }
 
+  public boolean hasParameterOfType(Class<?> parameterType)
+  {
+    for (List<ParameterMapping> parameterMappings : methodParameterMappings.values())
+    {
+      for (ParameterMapping parameterMapping : parameterMappings)
+      {
+        if (parameterMapping.isFor(parameterType))
+        {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static class ParameterMapping
   {
     private final int      indexInPossibleParameters;
@@ -82,6 +97,11 @@ public class CachedMethodInvoker
     {
       this.indexInPossibleParameters = indexInPossibleParameters;
       this.parameterClass = parameterClass;
+    }
+
+    public boolean isFor(Class<?> parameterType)
+    {
+      return parameterClass.equals(parameterType);
     }
 
   }

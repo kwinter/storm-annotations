@@ -27,9 +27,8 @@ public class AnnotatedBoltTest extends AbstractAnnotatedBoltTest
     whenRunning(bolt);
 
     assertTrue("Should have been prepared", bolt.wasPrepared);
-    thenTheOutputFieldsAre("field1", "field2");
     assertTrue("Should have been executed", bolt.wasExecuted);
-    thenTheOutputValuesAre(7, 9);
+    verifyEmission(tuple, 7, 9);
     assertTrue("Should have been cleaned up", bolt.wasCleanedUp);
   }
 

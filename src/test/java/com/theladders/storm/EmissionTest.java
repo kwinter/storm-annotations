@@ -9,11 +9,13 @@ import java.util.Iterator;
 import org.junit.Before;
 import org.junit.Test;
 
+import backtype.storm.task.OutputCollector;
 import backtype.storm.tuple.Values;
 
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.Field;
 import com.theladders.storm.annotations.OutputFields;
+import com.theladders.storm.annotations.Prepare;
 import com.theladders.storm.annotations.Stream;
 
 // TODO: test that output fields aren't required
@@ -35,9 +37,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new TypicalBolt();
     execute();
 
-    verifyBasicEmission();
-    Object[] expectedValues = { 7, 9 };
-    thenTheOutputValuesAre(expectedValues);
+    verifyEmission(tuple, 7, 9);
     verifyAck();
   }
 
@@ -47,9 +47,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new WithStream();
     execute();
 
-    verifyEmissionOn("anotherStream");
-    Object[] expectedValues = { 7, 9 };
-    thenTheOutputValuesAre("anotherStream", expectedValues);
+    verifyEmission(tuple, "anotherStream", 7, 9);
     verifyAck();
   }
 
@@ -59,9 +57,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new WithSingularReturn();
     execute();
 
-    verifyBasicEmission();
-    Object[] expectedValues = { 7 };
-    thenTheOutputValuesAre(expectedValues);
+    verifyEmission(tuple, 7);
     verifyAck();
   }
 
@@ -71,9 +67,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new WithArrayReturn();
     execute();
 
-    verifyBasicEmission();
-    Object[] expectedValues = { 7, 9 };
-    thenTheOutputValuesAre(expectedValues);
+    verifyEmission(tuple, 7, 9);
     verifyAck();
   }
 
@@ -100,9 +94,7 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new WithIterableReturn();
     execute();
 
-    verifyBasicEmission();
-    Object[] expectedValues = { 7, 9 };
-    thenTheOutputValuesAre(expectedValues);
+    verifyEmission(tuple, 7, 9);
     verifyAck();
   }
 
@@ -121,6 +113,42 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     bolt = new WithVoidReturn();
     execute();
     verifyNothingWasEmitted();
+    verifyAck();
+  }
+
+  @Test
+  public void prepareOutputCollectorWithReturnEmitsNothing()
+  {
+    bolt = new BoltWithPrepareOutputCollectorThatReturnsSomething();
+    execute();
+    verifyNothingWasEmitted();
+    verifyAck();
+  }
+
+  @Test
+  public void executeOutputCollectorWithReturnEmitsNothing()
+  {
+    bolt = new BoltWithExecuteOutputCollectorThatReturnsSomething();
+    execute();
+    verifyNothingWasEmitted();
+    verifyAck();
+  }
+
+  @Test
+  public void outputCollectorWithReturnAndHasEmissionDoesEmit()
+  {
+    bolt = new BoltWithOutputCollectorThatReturnsSomethingAndEmits();
+    execute();
+    verifyEmission(7, 9);
+    verifyAck();
+  }
+
+  @Test
+  public void outputCollectorWithoutReturnAndHasEmissionDoesEmit()
+  {
+    bolt = new BoltWithOutputCollectorThatReturnsNothingAndEmits();
+    execute();
+    verifyEmission(7, 9);
     verifyAck();
   }
 
@@ -215,6 +243,63 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
                         @Field("inputField2") TestObjectParameter testObject2)
     {
       // do nothing
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithPrepareOutputCollectorThatReturnsSomething
+  {
+
+    @Prepare
+    public void prepare(OutputCollector outputCollector)
+    {
+      // do nothing
+    }
+
+    @Execute
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new Values(testObject1.number, testObject2.number);
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithExecuteOutputCollectorThatReturnsSomething
+  {
+    @Execute
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2,
+                          OutputCollector outputCollector)
+    {
+      return new Values(testObject1.number, testObject2.number);
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithOutputCollectorThatReturnsSomethingAndEmits
+  {
+
+    @Execute
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2,
+                          OutputCollector outputCollector)
+    {
+      Values values = new Values(testObject1.number, testObject2.number);
+      outputCollector.emit(values);
+      return values;
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithOutputCollectorThatReturnsNothingAndEmits
+  {
+    @Execute
+    public void execute(@Field("inputField1") TestObjectParameter testObject1,
+                        @Field("inputField2") TestObjectParameter testObject2,
+                        OutputCollector outputCollector)
+    {
+      outputCollector.emit(new Values(testObject1.number, testObject2.number));
     }
   }
 
