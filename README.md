@@ -7,4 +7,4 @@ master: ![master](https://travis-ci.org/kwinter/storm-annotations.svg?branch=mas
 
 rich-bolt: ![rich-bolt](https://travis-ci.org/kwinter/storm-annotations.svg?branch=rich-bolt)
 
-![Coverage Status](https://coveralls.io/repos/kwinter/storm-annotations/badge.svg?branch=master)](https://coveralls.io/r/kwinter/storm-annotations?branch=master)
+[![Coverage Status](https://coveralls.io/repos/kwinter/storm-annotations/badge.svg)](https://coveralls.io/r/kwinter/storm-annotations)
