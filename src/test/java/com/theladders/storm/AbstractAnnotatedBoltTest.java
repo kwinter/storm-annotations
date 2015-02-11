@@ -201,6 +201,27 @@ public abstract class AbstractAnnotatedBoltTest
     thenTheOutputValuesAre(values);
   }
 
+  protected void verifyEmission(String streamId,
+                                Object... values)
+  {
+    verify(outputCollector, never()).emit(anyList());
+    verify(outputCollector, never()).emit(any(Collection.class), anyList());
+    // verify(outputCollector, never()).emit(anyString(), anyList());
+    verify(outputCollector).emit(eq(streamId), valuesArgumentCaptor.capture());
+    verify(outputCollector, never()).emit(any(Tuple.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emit(anyString(), any(Tuple.class), anyList());
+
+    verify(outputCollector, never()).emitDirect(any(int.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), any(Tuple.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Collection.class), anyList());
+    verify(outputCollector, never()).emitDirect(any(int.class), anyString(), any(Tuple.class), anyList());
+
+    thenTheOutputValuesAre(values);
+  }
+
   protected void verifyNothingWasEmitted()
   {
     verify(outputCollector, never()).emit(anyList());

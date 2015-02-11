@@ -18,6 +18,7 @@ import com.theladders.storm.annotations.ManualAck;
 import com.theladders.storm.annotations.OutputFields;
 import com.theladders.storm.annotations.Prepare;
 import com.theladders.storm.annotations.Stream;
+import com.theladders.storm.annotations.Unanchored;
 
 // TODO: test that output fields aren't required
 // TODO: test that cleanup is called even with exceptions
@@ -167,6 +168,27 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
   {
     bolt = new BoltWithManualAckAndNoOutputCollector();
     execute();
+  }
+
+  @Test
+  public void boltWithUnanchoredAnnotationShouldNotAnchor()
+  {
+    bolt = new WithUnanchoredAnnotation();
+    execute();
+
+    verifyEmission(7, 9);
+    verifyAck();
+  }
+
+
+  @Test
+  public void boltWithSpecificStreamAndUnanchoredAnnotationShouldNotAnchor()
+  {
+    bolt = new WithStreamAndUnanchored();
+    execute();
+
+    verifyEmission("anotherStream", 7, 9);
+    verifyAck();
   }
 
   private void execute()
@@ -341,6 +363,31 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     public void execute(@Field("inputField1") TestObjectParameter testObject1,
                         @Field("inputField2") TestObjectParameter testObject2)
     {}
+  }
+
+  @OutputFields({ "field1" })
+  public static class WithUnanchoredAnnotation
+  {
+    @Execute
+    @Unanchored
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new Values(testObject1.number, testObject2.number);
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class WithStreamAndUnanchored
+  {
+    @Execute
+    @Stream("anotherStream")
+    @Unanchored
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      return new Values(testObject1.number, testObject2.number);
+    }
   }
 
   private static class TestObjectParameter

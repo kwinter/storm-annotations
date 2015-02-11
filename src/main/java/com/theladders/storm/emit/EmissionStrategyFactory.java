@@ -3,13 +3,13 @@ package com.theladders.storm.emit;
 import java.lang.reflect.Method;
 
 import com.theladders.storm.annotations.Stream;
+import com.theladders.storm.annotations.Unanchored;
 import com.theladders.storm.execute.field.FieldExtractors;
 import com.theladders.storm.prepare.Preparer;
 
 public class EmissionStrategyFactory
 {
 
-  // TODO: determine whether or not to ack
   public static EmissionStrategy emissionStrategyFor(Method method,
                                                      FieldExtractors fieldExtractors,
                                                      Preparer preparer)
@@ -20,12 +20,13 @@ public class EmissionStrategyFactory
     }
 
     Stream stream = method.getAnnotation(Stream.class);
+    boolean shouldAnchor = !method.isAnnotationPresent(Unanchored.class);
 
     if (stream != null)
     {
-      return new StreamEmission(true, stream.value());
+      return new StreamEmission(shouldAnchor, stream.value());
     }
-    return new BasicEmission(true);
+    return new BasicEmission(shouldAnchor);
   }
 
 }
