@@ -14,6 +14,7 @@ import backtype.storm.tuple.Values;
 
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.Field;
+import com.theladders.storm.annotations.ManualAck;
 import com.theladders.storm.annotations.OutputFields;
 import com.theladders.storm.annotations.Prepare;
 import com.theladders.storm.annotations.Stream;
@@ -150,6 +151,22 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     execute();
     verifyEmission(7, 9);
     verifyAck();
+  }
+
+  @Test
+  public void manualAckWithOutputCollectorDoesntAck()
+  {
+    bolt = new BoltWithManualAckAndOutputCollector();
+    execute();
+    verifyEmission(7, 9);
+    verifyNoAck();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void manualAckWithoutOutputCollectorThrowsException()
+  {
+    bolt = new BoltWithManualAckAndNoOutputCollector();
+    execute();
   }
 
   private void execute()
@@ -301,6 +318,29 @@ public class EmissionTest extends AbstractAnnotatedBoltTest
     {
       outputCollector.emit(new Values(testObject1.number, testObject2.number));
     }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithManualAckAndOutputCollector
+  {
+    @Execute
+    @ManualAck
+    public void execute(@Field("inputField1") TestObjectParameter testObject1,
+                        @Field("inputField2") TestObjectParameter testObject2,
+                        OutputCollector outputCollector)
+    {
+      outputCollector.emit(new Values(testObject1.number, testObject2.number));
+    }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class BoltWithManualAckAndNoOutputCollector
+  {
+    @Execute
+    @ManualAck
+    public void execute(@Field("inputField1") TestObjectParameter testObject1,
+                        @Field("inputField2") TestObjectParameter testObject2)
+    {}
   }
 
   private static class TestObjectParameter

@@ -15,10 +15,15 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
+import com.theladders.storm.ack.AckStrategy;
+import com.theladders.storm.ack.AckStrategyFactory;
 import com.theladders.storm.annotations.Cleanup;
 import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.OutputFields;
+import com.theladders.storm.emit.EmissionStrategy;
+import com.theladders.storm.emit.EmissionStrategyFactory;
 import com.theladders.storm.execute.TupleExecutor;
+import com.theladders.storm.execute.field.FieldExtractors;
 import com.theladders.storm.invoke.CachedMethodInvoker;
 import com.theladders.storm.prepare.Preparer;
 
@@ -31,6 +36,10 @@ public class AnnotatedBolt extends BaseRichBolt
 
   private OutputCollector           outputCollector;
   private TupleExecutor             tupleExecutor;
+  private final Method              executeMethod;
+  private FieldExtractors           fieldExtractors;
+  private EmissionStrategy          emissionStrategy;
+  private AckStrategy               ackStrategy;
 
   public AnnotatedBolt(Object targetBolt)
   {
@@ -38,6 +47,7 @@ public class AnnotatedBolt extends BaseRichBolt
     this.outputFields = outputFieldsFor(targetBolt.getClass());
     this.preparer = Preparer.preparerFor(targetBolt.getClass());
     this.cleanupInvoker = CachedMethodInvoker.using(targetBolt.getClass(), Cleanup.class);
+    this.executeMethod = executeMethodFor(targetBolt.getClass());
   }
 
   @Override
@@ -54,12 +64,12 @@ public class AnnotatedBolt extends BaseRichBolt
                       TopologyContext topologyContext,
                       OutputCollector collector)
   {
-    outputCollector = collector;
+    this.outputCollector = collector;
     preparer.prepareWith(targetBolt, configMap, topologyContext, collector);
-    tupleExecutor = TupleExecutor.executorFor(targetBolt,
-                                              executeMethodFor(targetBolt.getClass()),
-                                              outputCollector,
-                                              preparer);
+    fieldExtractors = FieldExtractors.fieldExtractorsFor(executeMethod, outputCollector);
+    emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod, fieldExtractors, preparer);
+    ackStrategy = AckStrategyFactory.ackStrategyFor(executeMethod, fieldExtractors, preparer);
+    tupleExecutor = TupleExecutor.executorFor(targetBolt, executeMethod, fieldExtractors, emissionStrategy, ackStrategy);
   }
 
   @Override

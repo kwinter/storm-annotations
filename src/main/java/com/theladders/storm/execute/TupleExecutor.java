@@ -6,41 +6,40 @@ import java.util.List;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.tuple.Tuple;
 
+import com.theladders.storm.ack.AckStrategy;
 import com.theladders.storm.emit.EmissionStrategy;
-import com.theladders.storm.emit.EmissionStrategyFactory;
 import com.theladders.storm.execute.exception.TargetBoltExecutionFailed;
 import com.theladders.storm.execute.field.FieldExtractors;
-import com.theladders.storm.prepare.Preparer;
 
 public class TupleExecutor
 {
   private final FieldExtractors  fieldExtractors;
   private final Executor         executor;
   private final EmissionStrategy emissionStrategy;
+  private final AckStrategy      ackStrategy;
   private final Method           executeMethod;
 
   private TupleExecutor(FieldExtractors fieldExtractors,
                         Executor executor,
                         EmissionStrategy emissionStrategy,
+                        AckStrategy ackStrategy,
                         Method executeMethod)
   {
     this.fieldExtractors = fieldExtractors;
     this.executor = executor;
     this.emissionStrategy = emissionStrategy;
+    this.ackStrategy = ackStrategy;
     this.executeMethod = executeMethod;
   }
 
   public static TupleExecutor executorFor(Object targetBolt,
                                           Method executeMethod,
-                                          OutputCollector outputCollector,
-                                          Preparer preparer)
+                                          FieldExtractors fieldExtractors,
+                                          EmissionStrategy emissionStrategy,
+                                          AckStrategy ackStrategy)
   {
-    FieldExtractors fieldExtractors = FieldExtractors.fieldExtractorsFor(executeMethod, outputCollector);
     Executor executor = Executor.with(targetBolt, executeMethod);
-    EmissionStrategy emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod,
-                                                                                    fieldExtractors,
-                                                                                    preparer);
-    return new TupleExecutor(fieldExtractors, executor, emissionStrategy, executeMethod);
+    return new TupleExecutor(fieldExtractors, executor, emissionStrategy, ackStrategy, executeMethod);
   }
 
   public void execute(Tuple tuple,
@@ -54,8 +53,7 @@ public class TupleExecutor
       {
         emissionStrategy.emit(tuple, outgoingValues, outputCollector);
       }
-      // TODO: only do this if OutputCollector wasn't injected
-      outputCollector.ack(tuple);
+      ackStrategy.ackWith(outputCollector, tuple);
     }
     catch (TargetBoltExecutionFailed e)
     {
