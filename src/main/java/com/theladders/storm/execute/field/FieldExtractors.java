@@ -107,7 +107,7 @@ public class FieldExtractors
     {
       parameters[i] = fieldExtractors.get(i).extractFrom(tuple, outputCollector);
     }
-    return ExecuteParameters.from(parameters, haveOutputCollector);
+    return ExecuteParameters.from(parameters);
   }
 
   public boolean haveOutputCollector()
