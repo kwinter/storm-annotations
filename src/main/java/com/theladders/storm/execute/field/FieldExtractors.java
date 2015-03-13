@@ -22,8 +22,7 @@ public class FieldExtractors
     this.haveOutputCollector = haveOutputCollector;
   }
 
-  public static FieldExtractors fieldExtractorsFor(Method executeMethod,
-                                                   OutputCollector outputCollector)
+  public static FieldExtractors fieldExtractorsFor(Method executeMethod)
   {
     Annotation[][] allParameterAnnotations = executeMethod.getParameterAnnotations();
     Class<?>[] parameterTypes = executeMethod.getParameterTypes();
@@ -31,14 +30,13 @@ public class FieldExtractors
 
     for (int i = 0; i < parameterTypes.length; i++)
     {
-      fieldExtractors.add(fieldExtractorFor(parameterTypes[i], allParameterAnnotations[i], outputCollector));
+      fieldExtractors.add(fieldExtractorFor(parameterTypes[i], allParameterAnnotations[i]));
     }
     return FieldExtractors.from(fieldExtractors);
   }
 
   private static FieldExtractor fieldExtractorFor(Class<?> parameterType,
-                                                  Annotation[] parameterAnnotations,
-                                                  OutputCollector outputCollector)
+                                                  Annotation[] parameterAnnotations)
   {
     if (Tuple.class.isAssignableFrom(parameterType))
     {
@@ -47,7 +45,7 @@ public class FieldExtractors
 
     if (parameterType.equals(OutputCollector.class))
     {
-      return new OutputCollectorFieldExtractor(outputCollector);
+      return new OutputCollectorFieldExtractor();
     }
 
     com.theladders.storm.annotations.Field fieldAnnotation = fieldAnnotationIn(parameterAnnotations);
@@ -100,13 +98,14 @@ public class FieldExtractors
     return new FieldExtractors(fieldExtractors, haveOutputCollector);
   }
 
-  public ExecuteParameters valuesFrom(Tuple tuple)
+  public ExecuteParameters valuesFrom(Tuple tuple,
+                                      OutputCollector outputCollector)
   {
     Object[] parameters = new Object[fieldExtractors.size()];
 
     for (int i = 0; i < fieldExtractors.size(); i++)
     {
-      parameters[i] = fieldExtractors.get(i).extractFrom(tuple);
+      parameters[i] = fieldExtractors.get(i).extractFrom(tuple, outputCollector);
     }
     return ExecuteParameters.from(parameters, haveOutputCollector);
   }

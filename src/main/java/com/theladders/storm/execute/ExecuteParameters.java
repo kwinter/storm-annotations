@@ -3,6 +3,7 @@ package com.theladders.storm.execute;
 public class ExecuteParameters
 {
   private final Object[] parameters;
+  // TODO: this isn't used now
   private final boolean  haveOutputCollector;
 
   private ExecuteParameters(Object[] parameters,

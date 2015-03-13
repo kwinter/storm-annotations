@@ -45,10 +45,10 @@ public class TupleExecutor
   public void execute(Tuple tuple,
                       OutputCollector outputCollector)
   {
-    ExecuteParameters incomingValues = incomingValuesFrom(tuple);
+    ExecuteParameters parameterValues = parameterValuesFrom(tuple, outputCollector);
     try
     {
-      List<Object> outgoingValues = executeWith(incomingValues);
+      List<Object> outgoingValues = executeWith(parameterValues);
       if (outgoingValues != null)
       {
         emissionStrategy.emit(tuple, outgoingValues, outputCollector);
@@ -61,9 +61,10 @@ public class TupleExecutor
     }
   }
 
-  private ExecuteParameters incomingValuesFrom(Tuple tuple)
+  private ExecuteParameters parameterValuesFrom(Tuple tuple,
+                                                OutputCollector outputCollector)
   {
-    return fieldExtractors.valuesFrom(tuple);
+    return fieldExtractors.valuesFrom(tuple, outputCollector);
   }
 
   private List<Object> executeWith(ExecuteParameters incomingValues)

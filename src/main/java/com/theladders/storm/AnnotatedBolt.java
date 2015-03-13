@@ -35,11 +35,8 @@ public class AnnotatedBolt extends BaseRichBolt
   private final CachedMethodInvoker cleanupInvoker;
 
   private OutputCollector           outputCollector;
-  private TupleExecutor             tupleExecutor;
+  private final TupleExecutor       tupleExecutor;
   private final Method              executeMethod;
-  private FieldExtractors           fieldExtractors;
-  private EmissionStrategy          emissionStrategy;
-  private AckStrategy               ackStrategy;
 
   public AnnotatedBolt(Object targetBolt)
   {
@@ -48,6 +45,20 @@ public class AnnotatedBolt extends BaseRichBolt
     this.preparer = Preparer.preparerFor(targetBolt.getClass());
     this.cleanupInvoker = CachedMethodInvoker.using(targetBolt.getClass(), Cleanup.class);
     this.executeMethod = executeMethodFor(targetBolt.getClass());
+    tupleExecutor = executorFor(targetBolt, preparer, executeMethod);
+  }
+
+  // TODO: move this to an annotated bolt factory?
+  private static TupleExecutor executorFor(Object targetBolt,
+                                           Preparer preparer,
+                                           Method executeMethod)
+  {
+    FieldExtractors fieldExtractors = FieldExtractors.fieldExtractorsFor(executeMethod);
+    EmissionStrategy emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod,
+                                                                                    fieldExtractors,
+                                                                                    preparer);
+    AckStrategy ackStrategy = AckStrategyFactory.ackStrategyFor(executeMethod, fieldExtractors, preparer);
+    return TupleExecutor.executorFor(targetBolt, executeMethod, fieldExtractors, emissionStrategy, ackStrategy);
   }
 
   @Override
@@ -66,10 +77,6 @@ public class AnnotatedBolt extends BaseRichBolt
   {
     this.outputCollector = collector;
     preparer.prepareWith(targetBolt, configMap, topologyContext, collector);
-    fieldExtractors = FieldExtractors.fieldExtractorsFor(executeMethod, outputCollector);
-    emissionStrategy = EmissionStrategyFactory.emissionStrategyFor(executeMethod, fieldExtractors, preparer);
-    ackStrategy = AckStrategyFactory.ackStrategyFor(executeMethod, fieldExtractors, preparer);
-    tupleExecutor = TupleExecutor.executorFor(targetBolt, executeMethod, fieldExtractors, emissionStrategy, ackStrategy);
   }
 
   @Override

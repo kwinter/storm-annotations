@@ -10,4 +10,12 @@ public class AnnotationSupportingTopologyBuilder extends TopologyBuilder
   {
     return setBolt(id, new AnnotatedBolt(bolt));
   }
+
+  public BoltDeclarer setBolt(String id,
+                              Object bolt,
+                              Number parallelismHint)
+  {
+    return setBolt(id, new AnnotatedBolt(bolt), parallelismHint);
+  }
+
 }

@@ -5,15 +5,10 @@ import backtype.storm.tuple.Tuple;
 
 public class OutputCollectorFieldExtractor implements FieldExtractor
 {
-  private final OutputCollector outputCollector;
-
-  public OutputCollectorFieldExtractor(OutputCollector outputCollector)
-  {
-    this.outputCollector = outputCollector;
-  }
 
   @Override
-  public Object extractFrom(Tuple tuple)
+  public Object extractFrom(Tuple tuple,
+                            OutputCollector outputCollector)
   {
     return outputCollector;
   };
