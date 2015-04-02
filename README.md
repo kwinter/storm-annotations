@@ -6,7 +6,7 @@ storm-annotations
 Just a little side project to mess with for implementing bolts using annotations
 
 # Usage
-By default, it acts very similar to an BaseBasicBolt.  Tuples are automatically acked on completion if there are no errors, and emissions are anchored to the incoming tuple.  This behavior can be changed using the @ManualAck and @Unanchored annotations mentioned below.  If OutputCollector is present in either the prepare or execute method(s), you assume control of emission.  Parameters and methods are optional, and you only need to declare what you will actually use.
+By default, it acts very similar to BaseBasicBolt.  Tuples are automatically acked on completion if there are no errors, and emissions are anchored to the incoming tuple.  This behavior can be changed using the @ManualAck and @Unanchored annotations mentioned below.  If OutputCollector is present in either the prepare or execute method(s), you assume control of emission.  Parameters and methods are optional, and you only need to declare what you will actually use.
 
 ## Emitting values
 In order to emit values, you only need to return:
