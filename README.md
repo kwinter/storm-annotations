@@ -13,7 +13,8 @@ In order to emit values, you only need to return:
 * a singular primitive or object
 * an iterable of objects (this includes Storm's Values class)
 * an array of objects (primitive arrays are not supported)
-* null, to choose not to emit
+* null, if a return is delclared but you don't want to emit anything
+
 Void methods will also not emit anything
 
 By default, all values will be anchored.  To emit unanchored values, see the @Unanchored annotation below.
