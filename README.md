@@ -185,3 +185,20 @@ public static class TypicalBaseBasicBolt extends BaseRichBolt {
   }
 }
 ```
+
+### @ReportFailureOn and @FailTupleOn
+These two are method annotations to be placed on the @Execute method for declarative exception handling.  @ReportFailureOn acts very similar to the BaseBasicBolt's ReportedFailedException, in that it will report an error and fail the tuple.  @FailTupleOn acts similar to the BaseBasicBolt's FailedException, in that it only fails the tuple but does not report the error.  The exception mapping is similar to a try/catch - subclasses will be caught if they can be assigned to the exception class. Also similar to a try catch, when using both @ReportFailureOn and @FailTupleOn, the order in which they appear is important.  The first one that is matched will be used. They both will suppress the exception and prevent the bolt from dying.
+
+TODO: allow @ReportFailureOn to ack instead of fail
+```
+@OutputFields("myFieldName")
+public static class Bolt
+  @Execute
+  @ReportFailureOn(JsonParsingException.class)
+  @FailTupleOn(SomethingWeDontWantReported.class)
+  public String execute()
+  {
+    ... do something that may throw exceptions ...
+  }
+}
+```
