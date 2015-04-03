@@ -135,7 +135,7 @@ public static class TypicalBaseBasicBolt extends BaseRichBolt {
 ### @ManualAck
 An annotation to be placed on the @Execute method to indicate that no automatic acking should occur.  This is mostly geared towards bolts that may not want to ack/fail right away, but instead defer until later (such as batching).  An OutputCollector must be present in either the @Prepare or @Execute methods in conjuction with this annotation, or there would be no way to ack.
 
-Consider: is acking before the value is emitted a good idea?  Doesn't feel like it.  Perhaps @ManualAck doens't make sense at all, and using OutputCollector should assume control of both emission and ack.  These don't feel equivalent in that respect.  Perhaps SplitSentence is a better example, when wanting to emit multiple values but still ack.
+Consider: is acking before the value is emitted a good idea?  Doesn't feel like it.  Perhaps @ManualAck doens't make sense at all, and using OutputCollector should assume control of both emission and ack.  These don't feel equivalent in that respect.  Perhaps SplitSentence is an example of wanting to use OutputCollector while still having automatic acking, when wanting to emit multiple values but still ack.  A batched example is probably best for this.
 
 TODO: a better example (like batching), as this one isn't very practical
 ```
