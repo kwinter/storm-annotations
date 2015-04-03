@@ -229,3 +229,6 @@ public class SplitSentence implements Serializable {
     }
 }
 ```
+
+## What about other scenarios that don't fit into this type of thing?
+Using @ManualAck and accepting OutputCollector results in the bolt acting the same as extending BaseRichBolt, so you're free to proceed however you like.  Or just extend BaseRichBolt :)
