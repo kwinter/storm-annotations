@@ -1,8 +1,8 @@
 package com.theladders.storm.execute;
 
-import static com.theladders.storm.util.ExceptionUtils.exceptionIsAssignableToAny;
-
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +14,7 @@ import backtype.storm.tuple.Tuple;
 
 import com.theladders.storm.annotations.FailTupleOn;
 import com.theladders.storm.annotations.ReportFailureOn;
+import com.theladders.storm.exception.ExceptionClassifier;
 
 // TODO: handle multiple annotations of either
 // TODO: execute reflection once and hold onto the results for the entire run
@@ -83,6 +84,11 @@ public class ExceptionHandler
     {
       throw (RuntimeException) escapedException;
     }
+    // TODO: is catching Error a good idea?
+    else if (escapedException instanceof Error)
+    {
+      throw (Error) escapedException;
+    }
     else
     // checked exception escaped
     {
@@ -104,7 +110,7 @@ public class ExceptionHandler
   {
     if (failTupleOn != null)
     {
-      if (exceptionIsAssignableToAny(escapedException, failTupleOn.value()))
+      if (exceptionMatchesAny(escapedException, failTupleOn.value()))
       {
         return true;
       }
@@ -116,7 +122,7 @@ public class ExceptionHandler
   {
     if (reportFailureOn != null)
     {
-      if (exceptionIsAssignableToAny(escapedException, reportFailureOn.value()))
+      if (exceptionMatchesAny(escapedException, reportFailureOn.value()))
       {
         return true;
       }
@@ -135,5 +141,39 @@ public class ExceptionHandler
   {
     outputCollector.fail(tuple);
     // throw new FailedException(escapedException);
+  }
+
+  private static boolean exceptionMatchesAny(Throwable exception,
+                                             Class<?>[] throwableClasses)
+  {
+    for (Class<?> throwableClass : throwableClasses)
+    {
+      if (throwableClass.isAssignableFrom(exception.getClass()) || classifierIsSatsified(exception, throwableClass))
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean classifierIsSatsified(Throwable exception,
+                                               Class<?> possibleClassifier)
+  {
+    if (ExceptionClassifier.class.isAssignableFrom(possibleClassifier))
+    {
+      Constructor<ExceptionClassifier> constructor;
+      try
+      {
+        constructor = ((Class<ExceptionClassifier>) possibleClassifier).getConstructor();
+        ExceptionClassifier classifier = constructor.newInstance();
+        return classifier.isSatisfiedBy(exception);
+      }
+      catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException |
+             IllegalArgumentException | InvocationTargetException e)
+      {
+        throw new RuntimeException("Could not instantiate " + possibleClassifier);
+      }
+    }
+    return false;
   }
 }

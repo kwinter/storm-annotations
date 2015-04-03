@@ -33,6 +33,7 @@ import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.Field;
 import com.theladders.storm.annotations.OutputFields;
 import com.theladders.storm.annotations.ReportFailureOn;
+import com.theladders.storm.exception.NonFatal;
 
 public class ReportErrorOnTest
 {
@@ -117,6 +118,37 @@ public class ReportErrorOnTest
   public void reportedFailedExceptionsAreReportedAndFailed()
   {
     BoltThatThrowsReportReportedFailedException bolt = new BoltThatThrowsReportReportedFailedException();
+    annotatedBolt = new AnnotatedBolt(bolt);
+
+    executeBolt();
+
+    thenFailureWasReportedFor(MyException.class);
+    thenTupleWasFailed();
+  }
+
+  @Test
+  public void catchingNonFatalThrowingFatalRethrowsException()
+  {
+    FailNonFatalThrowFatalBolt bolt = new FailNonFatalThrowFatalBolt();
+    annotatedBolt = new AnnotatedBolt(bolt);
+    try
+    {
+      executeBolt();
+      fail("Should have thrown exception");
+    }
+    catch (OutOfMemoryError e)
+    {
+
+    }
+
+    thenFailureWasNotReported();
+    thenTupleWasNotFailed();
+  }
+
+  @Test
+  public void catchingNonFatalThrowingNonFatalFailsTuple()
+  {
+    FailNonFatalThrowNonFatalBolt bolt = new FailNonFatalThrowNonFatalBolt();
     annotatedBolt = new AnnotatedBolt(bolt);
 
     executeBolt();
@@ -233,6 +265,34 @@ public class ReportErrorOnTest
                           @Field("inputField2") TestObjectParameter testObject2)
     {
       throw new ReportedFailedException();
+    }
+
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class FailNonFatalThrowFatalBolt
+  {
+
+    @Execute
+    @ReportFailureOn(NonFatal.class)
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      throw new OutOfMemoryError();
+    }
+
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class FailNonFatalThrowNonFatalBolt
+  {
+
+    @Execute
+    @ReportFailureOn(NonFatal.class)
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      throw new MyException();
     }
 
   }

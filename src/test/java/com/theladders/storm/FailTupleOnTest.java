@@ -13,6 +13,7 @@ import com.theladders.storm.annotations.Execute;
 import com.theladders.storm.annotations.FailTupleOn;
 import com.theladders.storm.annotations.Field;
 import com.theladders.storm.annotations.OutputFields;
+import com.theladders.storm.exception.NonFatal;
 
 public class FailTupleOnTest extends AbstractAnnotatedBoltTest
 {
@@ -70,6 +71,36 @@ public class FailTupleOnTest extends AbstractAnnotatedBoltTest
   public void failedExceptionsAreFailed()
   {
     bolt = new BoltThatThrowsFailedException();
+
+    executeBolt();
+
+    thenFailureWasNotReported();
+    thenTupleWasFailed();
+  }
+
+  @Test
+  public void catchingNonFatalThrowingFatalRethrowsException()
+  {
+    bolt = new FailNonFatalThrowFatalBolt();
+
+    try
+    {
+      executeBolt();
+      fail("Should have thrown exception");
+    }
+    catch (OutOfMemoryError e)
+    {
+
+    }
+
+    thenFailureWasNotReported();
+    thenTupleWasNotFailed();
+  }
+
+  @Test
+  public void catchingNonFatalThrowingNonFatalFailsTuple()
+  {
+    bolt = new FailNonFatalThrowNonFatalBolt();
 
     executeBolt();
 
@@ -146,6 +177,34 @@ public class FailTupleOnTest extends AbstractAnnotatedBoltTest
     {
       throw new FailedException();
     }
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class FailNonFatalThrowFatalBolt
+  {
+
+    @Execute
+    @FailTupleOn(NonFatal.class)
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      throw new OutOfMemoryError();
+    }
+
+  }
+
+  @OutputFields({ "field1", "field2" })
+  public static class FailNonFatalThrowNonFatalBolt
+  {
+
+    @Execute
+    @FailTupleOn(NonFatal.class)
+    public Values execute(@Field("inputField1") TestObjectParameter testObject1,
+                          @Field("inputField2") TestObjectParameter testObject2)
+    {
+      throw new MyException();
+    }
+
   }
 
   private static class MyException extends RuntimeException
