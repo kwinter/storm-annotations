@@ -29,23 +29,19 @@ import com.theladders.storm.prepare.Preparer;
 
 public class AnnotatedBolt extends BaseRichBolt
 {
-  private final Object              targetBolt;
-  private final Fields              outputFields;
-  private final Preparer            preparer;
-  private final CachedMethodInvoker cleanupInvoker;
+  private final Object        targetBolt;
+  private final Fields        outputFields;
+  private Preparer            preparer;
+  private CachedMethodInvoker cleanupInvoker;
 
-  private OutputCollector           outputCollector;
-  private final TupleExecutor       tupleExecutor;
-  private final Method              executeMethod;
+  private OutputCollector     outputCollector;
+  private TupleExecutor       tupleExecutor;
+  private Method              executeMethod;
 
   public AnnotatedBolt(Object targetBolt)
   {
     this.targetBolt = targetBolt;
-    this.outputFields = outputFieldsFor(targetBolt.getClass());
-    this.preparer = Preparer.preparerFor(targetBolt.getClass());
-    this.cleanupInvoker = CachedMethodInvoker.using(targetBolt.getClass(), Cleanup.class);
-    this.executeMethod = executeMethodFor(targetBolt.getClass());
-    tupleExecutor = executorFor(targetBolt, preparer, executeMethod);
+    outputFields = outputFieldsFor(targetBolt.getClass());
   }
 
   // TODO: move this to an annotated bolt factory?
@@ -66,6 +62,7 @@ public class AnnotatedBolt extends BaseRichBolt
   {
     if (outputFields != null)
     {
+      // TODO: either kill @Stream or add proper support here
       outputFieldsDeclarer.declare(outputFields);
     }
   }
@@ -75,6 +72,10 @@ public class AnnotatedBolt extends BaseRichBolt
                       TopologyContext topologyContext,
                       OutputCollector collector)
   {
+    preparer = Preparer.preparerFor(targetBolt.getClass());
+    cleanupInvoker = CachedMethodInvoker.using(targetBolt.getClass(), Cleanup.class);
+    executeMethod = executeMethodFor(targetBolt.getClass());
+    tupleExecutor = executorFor(targetBolt, preparer, executeMethod);
     this.outputCollector = collector;
     preparer.prepareWith(targetBolt, configMap, topologyContext, collector);
   }
