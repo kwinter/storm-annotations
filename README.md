@@ -6,7 +6,7 @@ storm-annotations
 Just a little side project to mess with for implementing bolts using annotations
 
 # Usage
-By default, it acts very similar to BaseBasicBolt.  Tuples are automatically acked on completion if there are no errors, and emissions are anchored to the incoming tuple.  This behavior can be changed using the @ManualAck and @Unanchored annotations mentioned below.  If OutputCollector is present in either the prepare or execute method(s), you assume control of emission.  Parameters and methods are optional, and you only need to declare what you will actually use.
+Bolts can be just a plain old object, but must implement java.io.Serializable.  By default, it acts very similar to BaseBasicBolt.  Tuples are automatically acked on completion if there are no errors, and emissions are anchored to the incoming tuple.  This behavior can be changed using the @ManualAck and @Unanchored annotations mentioned below.  If OutputCollector is present in either the prepare or execute method(s), you assume control of emission.  Parameters and methods are optional, and you only need to declare what you will actually use.
 
 ## Emitting values
 In order to emit values, you only need to return:
@@ -27,7 +27,7 @@ A method level annotation that identifies the bolt's execute method.  This is th
 Reminder: if OutputCollector is present as a parameter, you assume control of emissions.
 
 ```
-public class Bolt {
+public class Bolt implements Serializable {
   @Execute
   public void execute() {}
 }
@@ -44,7 +44,7 @@ A class level annotation that accepts an array of field names.
 
 ```
 @OutputFields({ "field1", "field2" })
-public static class Bolt
+public static class Bolt implements Serializable
 ```
 is the equivalent of
 ```
@@ -95,7 +95,8 @@ A method annotation that identifies the cleanup method of the bolt, the same as 
 An annotation to be placed on the @Execute method to indicate that values should be emitted unanchored
 ```
 @OutputFields("myFieldName")
-public static class Bolt
+public static class Bolt implements Serializable
+{
   @Execute
   @Unanchored
   public String execute()
@@ -140,7 +141,7 @@ Consider: is acking before the value is emitted a good idea?  Doesn't feel like 
 TODO: a better example (like batching), as this one isn't very practical
 ```
 @OutputFields("myFieldName")
-public static class Bolt
+public static class Bolt implements Serializable {
   @Execute
   @ManualAck
   public String execute(Tuple tuple, OutputCollector outputCollector)
@@ -192,7 +193,7 @@ These two are method annotations to be placed on the @Execute method for declara
 TODO: allow @ReportFailureOn to ack instead of fail
 ```
 @OutputFields("myFieldName")
-public static class Bolt
+public static class Bolt implements Serializable {
   @Execute
   @ReportFailureOn(JsonParsingException.class)
   @FailTupleOn(SomethingWeDontWantReported.class)
@@ -206,7 +207,7 @@ public static class Bolt
 ## Examples
 ```
 @OutputFields({"double", "triple"})
-public class DoubleAndTripleBolt  {
+public class DoubleAndTripleBolt implements Serializable {
 
     @Execute
     public Values execute(@Field(index=0) int val) {
@@ -217,7 +218,7 @@ public class DoubleAndTripleBolt  {
 ```
 ```
 @OutputFields("word")
-public class SplitSentence {
+public class SplitSentence implements Serializable {
     
     @Execute
     public void execute(@Field(index=0) String sentence, OutputCollector collector) {
