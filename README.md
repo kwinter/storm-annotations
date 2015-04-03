@@ -135,7 +135,7 @@ public static class TypicalBaseBasicBolt extends BaseRichBolt {
 ### @ManualAck
 An annotation to be placed on the @Execute method to indicate that no automatic acking should occur.  This is mostly geared towards bolts that may not want to ack/fail right away, but instead defer until later (such as batching).  An OutputCollector must be present in either the @Prepare or @Execute methods in conjuction with this annotation, or there would be no way to ack.
 
-Consider: is acking before the value is emitted a good idea?  Doesn't feel like it.  Perhaps @ManualAck doens't make sense at all, and using OutputCollector should assume control of both emission and ack.  These don't feel equivalent in that respect.
+Consider: is acking before the value is emitted a good idea?  Doesn't feel like it.  Perhaps @ManualAck doens't make sense at all, and using OutputCollector should assume control of both emission and ack.  These don't feel equivalent in that respect.  Perhaps SplitSentence is a better example, when wanting to emit multiple values but still ack.
 
 TODO: a better example (like batching), as this one isn't very practical
 ```
@@ -200,5 +200,31 @@ public static class Bolt
   {
     ... do something that may throw exceptions ...
   }
+}
+```
+
+## Examples
+```
+@OutputFields({"double", "triple"})
+public class DoubleAndTripleBolt  {
+
+    @Execute
+    public Values execute(@Field(index=0) int val) {
+        return new Values(val*2, val*3);
+    }
+    
+}
+```
+```
+@OutputFields("word")
+public class SplitSentence {
+    
+    @Execute
+    public void execute(@Field(index=0) String sentence, OutputCollector collector) {
+        for(String word: sentence.split(" ")) {
+          collector.emit(tuple, new Values(word));
+        }
+        // will be automatically acked on completion
+    }
 }
 ```
